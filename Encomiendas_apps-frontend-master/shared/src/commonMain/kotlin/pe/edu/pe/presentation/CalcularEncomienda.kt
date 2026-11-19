@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
 import pe.edu.pe.presentation.theme.*
 import androidx.compose.ui.tooling.preview.Preview
 
-@Preview
+@Preview(name = "Formulario de cotización", showBackground = true, widthDp = 390, heightDp = 900)
 @Composable
 fun CotizacionPreview() {
     MandaYaTheme {
@@ -130,12 +130,12 @@ fun CalculadoraCostoScreen(
 
             Column {
                 ScaledText(
-                    text = "Administrador",
+                    text = "Manda Ya",
                     fontSize = 12f,
                     color = Muted
                 )
                 ScaledText(
-                    text = "Calcular costo",
+                    text = "Cotizar envío",
                     fontSize = 25f,
                     fontWeight = FontWeight.Bold,
                     color = Ink
