@@ -83,3 +83,13 @@ data class TarifaDto(
     // Por defecto true por si el backend no envía este campo
     val active: Boolean = true
 )
+
+@Serializable
+data class CotizacionDto(
+    val origenId: Int,
+    val destinoId: Int,
+    val peso: Double,
+    val costo: Double,
+    val moneda: String,
+    val tarifaId: Int
+)

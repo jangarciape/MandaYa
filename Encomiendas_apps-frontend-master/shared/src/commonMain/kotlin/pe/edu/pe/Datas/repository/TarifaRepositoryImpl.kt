@@ -268,4 +268,28 @@ class TarifaRepositoryImpl(
             )
         }
     }
+    override suspend fun cotizar(
+        origenId: Int,
+        destinoId: Int,
+        peso: Double
+    ): Result<Double> {
+        return try {
+            val token = sessionManager.getToken()
+                ?: return Result.failure(Exception("No existe una sesión activa"))
+            val response = client.get(
+                "$baseUrl/tarifas/cotizar/$origenId/$destinoId/$peso"
+            ) {
+                bearerAuth(token)
+            }
+            if (response.status.isSuccess()) {
+                val cotizacion = response.body<pe.edu.pe.Datas.remote.dto.CotizacionDto>()
+                Result.success(cotizacion.costo)
+            } else {
+                Result.failure(Exception("Error al calcular cotización: ${response.status}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }
