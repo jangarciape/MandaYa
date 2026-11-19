@@ -22,6 +22,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalInspectionMode
+import org.koin.compose.koinInject
+import pe.edu.pe.domain.model.Sede
+import pe.edu.pe.domain.repository.SedeRepository
+import pe.edu.pe.domain.repository.TarifaRepository
 import kotlin.math.roundToInt
 import pe.edu.pe.presentation.theme.*
 import androidx.compose.ui.tooling.preview.Preview
@@ -55,40 +60,20 @@ fun CalculadoraCostoScreen(
     var mostrarResultado by remember { mutableStateOf(false) }
     var costoCalculado by remember { mutableStateOf(0.0) }
     var mensajeError by remember { mutableStateOf("") }
+    var origenId by remember { mutableStateOf<Int?>(null) }
+    var destinoId by remember { mutableStateOf<Int?>(null) }
+    var sedesDisponibles by remember { mutableStateOf<List<Sede>>(emptyList()) }
 
+    val isPreview = LocalInspectionMode.current
+    val sedeRepository: SedeRepository? = if (isPreview) null else koinInject()
+    val tarifaRepository: TarifaRepository? = if (isPreview) null else koinInject()
 
-    val sedesDisponibles = listOf(
-        "Tarapoto",
-        "Moyobamba",
-        "Rioja",
-        "Nueva Cajamarca",
-        "Pomacochas",
-        "Pedro Ruiz",
-        "Bagua Grande"
-    )
-
-
-    fun calcularCosto(): Double {
-        val pesoRecomendado = 20.0
-        val pesoNum = peso.toDoubleOrNull() ?: 0.0
-
-        var tarifaBase = 0.0
-        if (pesoNum <= 5.0) tarifaBase = 10.0
-        else if (pesoNum <= 10.0) tarifaBase = 15.0
-        else if (pesoNum <= 20.0) tarifaBase = 25.0
-        else tarifaBase = 25.0
-
-        var excedente = 0.0
-        if (pesoNum > pesoRecomendado) {
-            val pesoExtra = pesoNum - pesoRecomendado
-            excedente = pesoExtra * 1.20
-        }
-
-        var factorTipo = 1.0
-        if (tipoEnvio == "Sobre") factorTipo = 0.8
-
-        return (tarifaBase + excedente) * factorTipo
+    LaunchedEffect(sedeRepository) {
+        sedeRepository?.getSedes()
+            ?.onSuccess { sedesDisponibles = it }
+            ?.onFailure { mensajeError = it.message ?: "No se pudieron cargar las sedes" }
     }
+
 
 
     fun Double.formatearPrecio(): String {
@@ -287,9 +272,10 @@ fun CalculadoraCostoScreen(
                     ) {
                         sedesDisponibles.forEach { sede ->
                             DropdownMenuItem(
-                                text = { ScaledText(sede, fontSize = 14f) },
+                                text = { ScaledText(sede.name, fontSize = 14f) },
                                 onClick = {
-                                    origenSeleccionado = sede
+                                    origenSeleccionado = sede.name
+                                    origenId = sede.id
                                     origenExpandido = false
                                     mensajeError = ""
                                 }
@@ -324,9 +310,10 @@ fun CalculadoraCostoScreen(
                     ) {
                         sedesDisponibles.forEach { sede ->
                             DropdownMenuItem(
-                                text = { ScaledText(sede, fontSize = 14f) },
+                                text = { ScaledText(sede.name, fontSize = 14f) },
                                 onClick = {
-                                    destinoSeleccionado = sede
+                                    destinoSeleccionado = sede.name
+                                    destinoId = sede.id
                                     destinoExpandido = false
                                     mensajeError = ""
                                 }
@@ -398,9 +385,21 @@ fun CalculadoraCostoScreen(
                 } else if (origenSeleccionado == destinoSeleccionado) {
                     mensajeError = "El origen y destino no pueden ser iguales"
                 } else {
-                    mensajeError = ""
-                    costoCalculado = calcularCosto()
-                    mostrarResultado = true
+                    val selectedOrigenId = origenId
+                    val selectedDestinoId = destinoId
+                    if (selectedOrigenId == null || selectedDestinoId == null) {
+                        mensajeError = "Selecciona sedes válidas"
+                    } else {
+                        mensajeError = ""
+                        tarifaRepository?.cotizar(selectedOrigenId, selectedDestinoId, pesoNum) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
+                            .onSuccess {
+                                costoCalculado = it
+                                mostrarResultado = true
+                            }
+                            .onFailure {
+                                mensajeError = it.message ?: "No se pudo calcular la cotización"
+                            }
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth().height(56.dp),
