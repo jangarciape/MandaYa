@@ -16,4 +16,10 @@ interface TarifaRepository {
         precioKgExcedente: Double,
         active: Boolean
     ): Result<Tarifa>
+    
+    suspend fun cotizar(
+        origenId: Int,
+        destinoId: Int,
+        peso: Double
+    ): Result<Double>
 }
