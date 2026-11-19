@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RolesModule } from './roles/roles.module.js';
@@ -29,20 +29,21 @@ import { ReportesModule } from './reportes/reportes.module.js';
       envFilePath: 'Credenciales.env',
     }),
 
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: 'jeyner',
-      database: 'manda_ya',
-
-      entities: [
-        import.meta.dirname +
-        '/**/*.entity{.ts,.js}',
-      ],
-
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql' as const,
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: config.get<number>('DB_PORT', 3306),
+        username: config.get<string>('DB_USERNAME', 'root'),
+        password: config.get<string>('DB_PASSWORD', ''),
+        database: config.get<string>('DB_DATABASE', 'manda_ya'),
+        entities: [
+          import.meta.dirname +
+          '/**/*.entity{.ts,.js}',
+        ],
+        synchronize: config.get<boolean>('DB_SYNCHRONIZE', true),
+      }),
     }),
 
     RolesModule,
