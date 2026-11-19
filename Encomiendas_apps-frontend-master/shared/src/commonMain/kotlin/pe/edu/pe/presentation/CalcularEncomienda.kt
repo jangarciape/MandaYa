@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalInspectionMode
 import org.koin.compose.koinInject
 import pe.edu.pe.domain.model.Sede
 import pe.edu.pe.domain.repository.SedeRepository
@@ -63,13 +64,14 @@ fun CalculadoraCostoScreen(
     var destinoId by remember { mutableStateOf<Int?>(null) }
     var sedesDisponibles by remember { mutableStateOf<List<Sede>>(emptyList()) }
 
-    val sedeRepository: SedeRepository = koinInject()
-    val tarifaRepository: TarifaRepository = koinInject()
+    val isPreview = LocalInspectionMode.current
+    val sedeRepository: SedeRepository? = if (isPreview) null else koinInject()
+    val tarifaRepository: TarifaRepository? = if (isPreview) null else koinInject()
 
-    LaunchedEffect(Unit) {
-        sedeRepository.getSedes()
-            .onSuccess { sedesDisponibles = it }
-            .onFailure { mensajeError = it.message ?: "No se pudieron cargar las sedes" }
+    LaunchedEffect(sedeRepository) {
+        sedeRepository?.getSedes()
+            ?.onSuccess { sedesDisponibles = it }
+            ?.onFailure { mensajeError = it.message ?: "No se pudieron cargar las sedes" }
     }
 
 
@@ -389,7 +391,7 @@ fun CalculadoraCostoScreen(
                         mensajeError = "Selecciona sedes válidas"
                     } else {
                         mensajeError = ""
-                        tarifaRepository.cotizar(selectedOrigenId, selectedDestinoId, pesoNum)
+                        tarifaRepository?.cotizar(selectedOrigenId, selectedDestinoId, pesoNum) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
                             .onSuccess {
                                 costoCalculado = it
                                 mostrarResultado = true
