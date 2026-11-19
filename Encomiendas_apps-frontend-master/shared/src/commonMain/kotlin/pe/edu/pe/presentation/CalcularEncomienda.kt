@@ -391,7 +391,12 @@ fun CalculadoraCostoScreen(
                         mensajeError = "Selecciona sedes válidas"
                     } else {
                         mensajeError = ""
-                        tarifaRepository?.cotizar(selectedOrigenId, selectedDestinoId, pesoNum) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
+                        val resultado = tarifaRepository?.cotizar(
+                            selectedOrigenId,
+                            selectedDestinoId,
+                            pesoNum
+                        ) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
+                        resultado
                             .onSuccess {
                                 costoCalculado = it
                                 mostrarResultado = true
