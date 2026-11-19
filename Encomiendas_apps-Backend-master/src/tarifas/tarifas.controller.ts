@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseFloatPipe,
   ParseIntPipe,
   Post,
   Put,
@@ -35,6 +36,18 @@ export class TarifasController {
 
     return this.tarifaService.findAll();
 
+  }
+
+  @UseGuards(
+    JwtAuthGuard,
+  )
+  @Get('cotizar/:origenId/:destinoId/:peso')
+  cotizar(
+    @Param('origenId', ParseIntPipe) origenId: number,
+    @Param('destinoId', ParseIntPipe) destinoId: number,
+    @Param('peso', ParseFloatPipe) peso: number,
+  ) {
+    return this.tarifaService.cotizar(origenId, destinoId, peso);
   }
 
   @UseGuards(

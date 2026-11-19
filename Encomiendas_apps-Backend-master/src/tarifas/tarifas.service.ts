@@ -170,6 +170,37 @@ export class TarifasService {
     return tarifaFound;
   }
 
+  async cotizar(
+    origenId: number,
+    destinoId: number,
+    peso: number,
+  ) {
+    if (!Number.isFinite(peso) || peso <= 0) {
+      throw new BadRequestException(
+        'El peso debe ser un número mayor que cero',
+      );
+    }
+
+    const tarifa = await this.findBySedes(origenId, destinoId);
+    const pesoBase = 20;
+    const excedente = Math.max(0, peso - pesoBase);
+    const costo = Number(
+      (
+        Number(tarifa.precio_base) +
+        excedente * Number(tarifa.precio_kg_excedente)
+      ).toFixed(2),
+    );
+
+    return {
+      origenId,
+      destinoId,
+      peso,
+      costo,
+      moneda: 'PEN',
+      tarifaId: tarifa.id,
+    };
+  }
+
   async update(
     id: number,
     tarifa: UpdateTarifaDto,
