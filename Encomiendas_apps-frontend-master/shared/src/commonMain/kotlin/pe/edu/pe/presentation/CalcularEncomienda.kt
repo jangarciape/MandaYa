@@ -390,8 +390,11 @@ fun CalculadoraCostoScreen(
 
         Button(
             onClick = {
-                if (peso.isBlank() || origenSeleccionado.isBlank() || destinoSeleccionado.isBlank()) {
-                    mensajeError = "Completa peso, origen y destino"
+                val pesoNum = peso.replace(',', '.').toDoubleOrNull()
+                if (pesoNum == null || pesoNum <= 0.0) {
+                    mensajeError = "Ingresa un peso válido mayor que cero"
+                } else if (origenSeleccionado.isBlank() || destinoSeleccionado.isBlank()) {
+                    mensajeError = "Selecciona el origen y el destino"
                 } else if (origenSeleccionado == destinoSeleccionado) {
                     mensajeError = "El origen y destino no pueden ser iguales"
                 } else {
