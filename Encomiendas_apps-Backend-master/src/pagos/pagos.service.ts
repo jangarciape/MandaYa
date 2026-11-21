@@ -188,7 +188,10 @@ export class PagosService {
 
         relations: {
 
+          pagador: true,
           encomienda: {
+            remitente: true,
+            destinatario: true,
 
             sede_origen:
               true,
@@ -385,15 +388,18 @@ export class PagosService {
 
     }
 
-    pago.estado =
-      PagoEstado.PAGADO;
-
-    pago.pagado_at =
-      new Date();
-
-    return this.pagoRepository.save(
-      pago,
+    const pagador = pago.modalidad === PagoModalidad.ORIGEN
+      ? pago.encomienda.remitente
+      : pago.encomienda.destinatario;
+    const pagadoAt = new Date();
+    const actualizado = await this.pagoRepository.update(
+      { id: pago.id, estado: PagoEstado.PENDIENTE, modalidad: pago.modalidad },
+      { estado: PagoEstado.PAGADO, pagado_at: pagadoAt, pagador: { id: pagador.id } },
     );
+    if (actualizado.affected !== 1) {
+      throw new BadRequestException('El pago cambió antes de confirmar el cobro');
+    }
+    return { ...pago, estado: PagoEstado.PAGADO, pagado_at: pagadoAt, pagador };
   }
 
   async validarPagoOrigen(

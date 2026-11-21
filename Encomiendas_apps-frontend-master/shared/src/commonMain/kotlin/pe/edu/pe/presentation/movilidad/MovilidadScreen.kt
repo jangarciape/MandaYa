@@ -90,6 +90,12 @@ fun MovilidadScreen(
     val uiState by
     viewModel.uiState.collectAsState()
 
+    val trasladoActivo = uiState.traslados.firstOrNull {
+        it.id == uiState.trasladoSeleccionadoId && it.estado.equals("EN_CURSO", ignoreCase = true)
+    }
+    if (trasladoActivo != null) {
+        CapturaUbicacion(trasladoActivo.id, viewModel::actualizarUbicacion)
+    }
     Scaffold(
         containerColor =
             LightBackground,
