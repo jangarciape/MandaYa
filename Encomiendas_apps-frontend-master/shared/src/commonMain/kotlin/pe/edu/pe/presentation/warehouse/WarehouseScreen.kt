@@ -33,6 +33,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface as MaterialSurface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -627,13 +631,37 @@ fun WarehouseScreen(
 
         } else {
 
+            var codigo by rememberSaveable(destino.id, uiState.filtro) { mutableStateOf("") }
+            var estado by rememberSaveable(destino.id, uiState.filtro) { mutableStateOf("") }
+            val resultados = uiState.encomiendas.filter { envio ->
+                envio.codigoRastreo.contains(codigo.trim(), ignoreCase = true) &&
+                    (estado.isEmpty() || envio.estado == estado)
+            }
+            OutlinedTextField(
+                value = codigo,
+                onValueChange = { codigo = it },
+                label = { Text("Buscar por código de rastreo") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            LazyRow {
+                items(listOf("") + uiState.encomiendas.map { it.estado }.distinct().sorted()) { opcion ->
+                    FiltroItem(
+                        texto = opcion.ifEmpty { "Todos los estados" }.replace('_', ' '),
+                        seleccionado = estado == opcion,
+                        modifier = Modifier.padding(end = 4.dp),
+                        onClick = { estado = opcion }
+                    )
+                }
+            }
+
             Text(
                 text =
                     obtenerTituloLista(
                         filtro =
                             uiState.filtro,
                         total =
-                            uiState.total
+                            resultados.size
                     ),
                 fontSize =
                     15.sp,
@@ -651,11 +679,12 @@ fun WarehouseScreen(
             )
 
             if (
-                uiState.encomiendas
-                    .isEmpty()
+                resultados.isEmpty()
             ) {
 
-                if (
+                if (codigo.isNotBlank() || estado.isNotEmpty()) {
+                    EstadoVacio(mensaje = "No hay coincidencias.")
+                } else if (
                     uiState.filtro ==
                     "pendientes"
                 ) {
@@ -702,7 +731,7 @@ fun WarehouseScreen(
 
                     items(
                         items =
-                            uiState.encomiendas,
+                            resultados,
                         key = { encomienda ->
                             encomienda.id
                         }
