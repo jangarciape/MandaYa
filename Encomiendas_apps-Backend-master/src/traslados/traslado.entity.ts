@@ -134,6 +134,12 @@ export class Traslado {
   updated_at:
     Date;
 
+  @Column({ type: 'int', nullable: true })
+  ultima_parada_id: number | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  retorno_confirmado_at: Date | null;
+
   @OneToMany(
     () => TrasladoEncomienda,
     (detalle) =>

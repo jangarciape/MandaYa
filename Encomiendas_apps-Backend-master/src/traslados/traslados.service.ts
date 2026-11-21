@@ -1945,141 +1945,40 @@ export class TrasladosService {
     recorrido[0].sede;
 
 
-  const trasladoActivoVehiculo =
-    await this.trasladoRepository.findOne({
-
-      where: {
-
-        vehiculo: {
-          id: traslado.vehiculo.id,
-        },
-
-        estado:
-          In([
-            TrasladoEstado.PROGRAMADO,
-            TrasladoEstado.EN_CURSO,
-          ]),
-
-      },
-
-    });
-
-
-  if (
-    trasladoActivoVehiculo
-  ) {
-
-    throw new ConflictException(
-      'El vehículo ya tiene un traslado activo',
+  if (!traslado.retorno_confirmado_at) {
+    await this.trasladoRepository.update(
+      { id: traslado.id, retorno_confirmado_at: IsNull() },
+      { retorno_confirmado_at: new Date(), ultima_parada_id: sedeCentral.id },
     );
   }
-
-
-  const trasladoActivoConductor =
-    await this.trasladoRepository.findOne({
-
-      where: {
-
-        conductor: {
-          id: traslado.conductor.id,
-        },
-
-        estado:
-          In([
-            TrasladoEstado.PROGRAMADO,
-            TrasladoEstado.EN_CURSO,
-          ]),
-
-      },
-
-    });
-
-
-  if (
-    trasladoActivoConductor
-  ) {
-
-    throw new ConflictException(
-      'El conductor ya tiene un traslado activo',
-    );
-  }
-
-
-  const nuevoTraslado =
-    this.trasladoRepository.create({
-
-      ruta:
-        traslado.ruta,
-
-      vehiculo:
-        traslado.vehiculo,
-
-      conductor:
-        traslado.conductor,
-
-      estado:
-        TrasladoEstado.PROGRAMADO,
-
-      salida_at:
-        null,
-
-      llegada_at:
-        null,
-
-    });
-
-
-  const trasladoGuardado =
-    await this.trasladoRepository.save(
-      nuevoTraslado,
-    );
-
-
   return {
-
-    mensaje:
-      'Retorno a sede central registrado correctamente',
-
-    sede_central: {
-
-      id:
-        sedeCentral.id,
-
-      name:
-        sedeCentral.name,
-
-    },
-
-    traslado_finalizado_id:
-      traslado.id,
-
-    nuevo_traslado_id:
-      trasladoGuardado.id,
-
-    estado:
-      trasladoGuardado.estado,
-
-    vehiculo: {
-
-      id:
-        traslado.vehiculo.id,
-
-      placa:
-        traslado.vehiculo.placa,
-
-    },
-
-    conductor: {
-
-      id:
-        traslado.conductor.id,
-
-      name:
-        traslado.conductor.name,
-
-    },
-
+    mensaje: 'Retorno a sede central registrado correctamente',
+    sede_central: { id: sedeCentral.id, name: sedeCentral.name },
+    traslado_finalizado_id: traslado.id,
+    estado: traslado.estado,
+    vehiculo: { id: traslado.vehiculo.id, placa: traslado.vehiculo.placa },
+    conductor: { id: traslado.conductor.id, name: traslado.conductor.name },
   };
 }
 
+  async confirmarParada(id: number, sedeId: number, conductorId: number) {
+    const traslado = await this.trasladoRepository.findOne({
+      where: { id }, relations: { conductor: true, ruta: { sedes: { sede: true } } },
+    });
+    if (!traslado) throw new NotFoundException('El traslado no existe');
+    if (traslado.conductor.id !== conductorId) throw new ForbiddenException('Conductor no asignado');
+    if (traslado.estado !== TrasladoEstado.EN_CURSO) throw new BadRequestException('El traslado no está en curso');
+    if (traslado.ultima_parada_id === sedeId) return { sedeId };
+    const paradas = [...traslado.ruta.sedes].sort((a, b) => a.orden - b.orden);
+    const anterior = traslado.ultima_parada_id;
+    const indice = anterior == null ? 0 : paradas.findIndex(p => p.sede.id === anterior);
+    if (indice < 0 || paradas[indice + 1]?.sede.id !== sedeId)
+      throw new BadRequestException('Debe confirmar la siguiente sede del recorrido');
+    const cambio = await this.trasladoRepository.update(
+      { id, estado: TrasladoEstado.EN_CURSO, ultima_parada_id: anterior ?? IsNull() },
+      { ultima_parada_id: sedeId },
+    );
+    if (!cambio.affected) throw new ConflictException('El traslado cambió durante la confirmación');
+    return { sedeId };
+  }
 }

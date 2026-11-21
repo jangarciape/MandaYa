@@ -236,7 +236,7 @@ export class TrasladoEncomiendaService {
       traslado.ruta.sedes.find(
         (item) =>
           item.sede.id ===
-          encomienda.sede_destino.id,
+          (detalle.sedeDescargaId ?? encomienda.sede_destino.id),
       );
 
 
@@ -423,6 +423,7 @@ export class TrasladoEncomiendaService {
 
     const newDetalle =
       this.detalleRepository.create({
+        sede_descarga_id: destinoEnRuta.sede.id,
 
         traslado:
           traslado,
@@ -717,24 +718,11 @@ export class TrasladoEncomiendaService {
     const encomiendas =
       await this.detalleRepository.find({
 
-        where: {
-
-          traslado: {
-            id: trasladoId,
-          },
-
-          encomienda: {
-
-            sede_destino: {
-              id: sedeId,
-            },
-
-          },
-
-          descargado_at:
-            IsNull(),
-
-        },
+        where: [
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: sedeId },
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: IsNull(),
+            encomienda: { sede_destino: { id: sedeId } } },
+        ],
 
         relations: {
 
@@ -940,24 +928,11 @@ export class TrasladoEncomiendaService {
     const detalles =
       await this.detalleRepository.find({
 
-        where: {
-
-          traslado: {
-            id: trasladoId,
-          },
-
-          encomienda: {
-
-            sede_destino: {
-              id: sedeId,
-            },
-
-          },
-
-          descargado_at:
-            IsNull(),
-
-        },
+        where: [
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: sedeId },
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: IsNull(),
+            encomienda: { sede_destino: { id: sedeId } } },
+        ],
 
         relations: {
 
@@ -1002,10 +977,9 @@ export class TrasladoEncomiendaService {
         .ultima_sede =
         sede;
 
-      detalle.encomienda
-        .estado =
-        EncomiendaEstado
-          .EN_SEDE_DESTINO;
+      detalle.encomienda.estado = detalle.encomienda.sede_destino.id === sede.id
+        ? EncomiendaEstado.EN_SEDE_DESTINO
+        : EncomiendaEstado.EN_ALMACEN;
 
     }
 

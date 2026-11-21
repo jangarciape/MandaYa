@@ -66,6 +66,9 @@ export class TrasladoEncomienda {
   })
   asignado_at: Date;
 
+  @Column({ type: 'int', nullable: true })
+  sede_descarga_id: number | null;
+
   @Column({
     type: 'datetime',
     nullable: true,

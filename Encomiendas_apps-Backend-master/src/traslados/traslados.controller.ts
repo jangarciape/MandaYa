@@ -452,4 +452,11 @@ retornarSedeCentral(
     );
 }
 
+  @HasRoles(JwtRole.MOVILIDAD)
+  @UseGuards(JwtAuthGuard, JwtRolesGuard)
+  @Put(':id/paradas/:sedeId/confirmar')
+  confirmarParada(@Param('id', ParseIntPipe) id: number,
+    @Param('sedeId', ParseIntPipe) sedeId: number, @Req() request: any) {
+    return this.trasladoService.confirmarParada(id, sedeId, request.user.userId);
+  }
 }
