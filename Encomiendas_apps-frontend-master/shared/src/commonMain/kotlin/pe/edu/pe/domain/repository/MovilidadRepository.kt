@@ -24,6 +24,8 @@ interface MovilidadRepository {
     ): Result<Unit>
 
 
+    suspend fun confirmarParada(trasladoId: Int, sedeId: Int): Result<Unit>
+
     suspend fun descargarPorSede(
         trasladoId: Int,
         sedeId: Int

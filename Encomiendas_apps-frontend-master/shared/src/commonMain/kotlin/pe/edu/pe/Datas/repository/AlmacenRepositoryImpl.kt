@@ -375,7 +375,8 @@ class AlmacenRepositoryImpl(
 
     override suspend fun asignarEncomiendaATraslado(
         trasladoId: Int,
-        encomiendaId: Int
+        encomiendaId: Int,
+        sedeDescargaId: Int?
     ): Result<Unit> {
 
         return try {
@@ -426,8 +427,8 @@ class AlmacenRepositoryImpl(
                     trasladoId =
                         trasladoId,
 
-                    encomiendaId =
-                        encomiendaId
+                    encomiendaId = encomiendaId,
+                    sedeDescargaId = sedeDescargaId
                 )
 
 
@@ -542,7 +543,8 @@ private data class AsignarEncomiendaTrasladoRequestDto(
 
     val trasladoId: Int,
 
-    val encomiendaId: Int
+    val encomiendaId: Int,
+    val sedeDescargaId: Int?
 )
 
 

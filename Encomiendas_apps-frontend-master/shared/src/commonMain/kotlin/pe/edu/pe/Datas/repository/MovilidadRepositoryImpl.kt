@@ -599,6 +599,19 @@ class MovilidadRepositoryImpl(
         }
     }
 
+    override suspend fun confirmarParada(trasladoId: Int, sedeId: Int): Result<Unit> {
+        return try {
+            val token = obtenerToken().getOrThrow()
+            val response = client.put("$baseUrl/traslados/$trasladoId/paradas/$sedeId/confirmar") { bearerAuth(token) }
+            if (response.status.isSuccess()) Result.success(Unit)
+            else Result.failure(Exception(obtenerMensajeError(response.bodyAsText())))
+        } catch (cancel: kotlinx.coroutines.CancellationException) {
+            throw cancel
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
+    }
+
     override suspend fun actualizarUbicacion(
         trasladoId: Int,
         latitud: Double,

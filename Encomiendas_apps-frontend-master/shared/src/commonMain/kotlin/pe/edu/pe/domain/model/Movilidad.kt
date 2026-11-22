@@ -73,6 +73,7 @@ data class ResumenTrasladoMovilidad(
 
 data class DetalleEncomiendaMovilidad(
     val detalleId: Int,
+    val sedeDescargaId: Int?,
     val descargadoAt: String,
     val encomienda: EncomiendaMovilidad
 )

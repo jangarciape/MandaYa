@@ -181,6 +181,9 @@ data class ResumenTrasladoMovilidadDto(
 @Serializable
 data class DetalleEncomiendaMovilidadDto(
 
+    @SerialName("sede_descarga_id")
+    val sedeDescargaId: Int? = null,
+
     val detalleId:
     Int,
 

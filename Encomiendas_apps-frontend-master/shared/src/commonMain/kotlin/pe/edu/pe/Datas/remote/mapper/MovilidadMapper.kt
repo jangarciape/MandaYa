@@ -275,6 +275,7 @@ fun DetalleEncomiendaMovilidadDto.toDomain():
 
     return DetalleEncomiendaMovilidad(
 
+        sedeDescargaId = sedeDescargaId,
         detalleId =
             detalleId,
 

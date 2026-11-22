@@ -21,6 +21,7 @@ interface AlmacenRepository {
     ): Result<ListaTrasladosDisponiblesAlmacen>
     suspend fun asignarEncomiendaATraslado(
         trasladoId: Int,
-        encomiendaId: Int
+        encomiendaId: Int,
+        sedeDescargaId: Int?
     ): Result<Unit>
 }

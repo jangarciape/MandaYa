@@ -530,6 +530,7 @@ export class TrasladosService {
 
                 return {
 
+                  sede_descarga_id: detalle.sede_descarga_id ?? sedeDestino.id,
                   detalleId:
                     detalle.id,
 

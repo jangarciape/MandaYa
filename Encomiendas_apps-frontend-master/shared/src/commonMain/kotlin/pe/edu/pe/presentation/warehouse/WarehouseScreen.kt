@@ -71,6 +71,9 @@ fun WarehouseScreen(
     ) {
 
         SelectorMovilidadDialog(
+            sedes = uiState.sedesDestino,
+            sedeDescargaId = uiState.sedeDescargaId,
+            onSede = { sede -> uiState.encomiendaSeleccionada?.let { viewModel.abrirSelectorMovilidad(it, sede) } },
             encomienda =
                 uiState.encomiendaSeleccionada,
             traslados =
@@ -1973,6 +1976,7 @@ private fun BotonAccion(
 
 @Composable
 private fun SelectorMovilidadDialog(
+    sedes: List<Sede>, sedeDescargaId: Int?, onSede: (Int) -> Unit,
     encomienda: EncomiendaAlmacen?,
     traslados: List<TrasladoDisponibleAlmacen>,
     cargando: Boolean,
@@ -2004,10 +2008,14 @@ private fun SelectorMovilidadDialog(
                         Ink
                 )
 
-                if (
-                    encomienda != null
-                ) {
-
+                Text("Sede de descarga del tramo")
+                LazyRow {
+                    items(sedes, key = { it.id }) { sede ->
+                        TextButton(enabled = asignandoTrasladoId == null && sede.id != sedeDescargaId,
+                            onClick = { onSede(sede.id) }) { Text(sede.name) }
+                    }
+                }
+                if (encomienda != null) {
                     Text(
                         text =
                             encomienda.codigoRastreo,

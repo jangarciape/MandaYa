@@ -39,12 +39,14 @@ class AlmacenUseCase(
     }
     suspend fun asignarEncomiendaATraslado(
         trasladoId: Int,
-        encomiendaId: Int
+        encomiendaId: Int,
+        sedeDescargaId: Int?
     ): Result<Unit> {
 
         return repository.asignarEncomiendaATraslado(
             trasladoId = trasladoId,
-            encomiendaId = encomiendaId
+            encomiendaId = encomiendaId,
+            sedeDescargaId = sedeDescargaId
         )
     }
 }

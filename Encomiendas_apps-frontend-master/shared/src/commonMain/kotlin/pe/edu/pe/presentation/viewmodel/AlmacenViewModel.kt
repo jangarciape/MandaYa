@@ -29,6 +29,7 @@ data class AlmacenUiState(
     val encomiendaSeleccionada: EncomiendaAlmacen? = null,
     val trasladosDisponibles: List<TrasladoDisponibleAlmacen> = emptyList(),
     val mostrarSelectorMovilidad: Boolean = false,
+    val sedeDescargaId: Int? = null,
     val cargandoMovilidades: Boolean = false,
     val asignandoTrasladoId: Int? = null
 )
@@ -678,7 +679,8 @@ class AlmacenViewModel(
     }
 
     fun abrirSelectorMovilidad(
-        encomienda: EncomiendaAlmacen
+        encomienda: EncomiendaAlmacen,
+        descarga: Int = encomienda.sedeDestinoId
     ) {
 
         if (
@@ -772,11 +774,11 @@ class AlmacenViewModel(
             return
         }
 
-        val destinoId =
-            destino.id
+        val destinoId = descarga
 
         _uiState.update {
             it.copy(
+                sedeDescargaId = descarga,
                 encomiendaSeleccionada = encomienda,
                 mostrarSelectorMovilidad = true,
                 trasladosDisponibles = emptyList(),
@@ -800,7 +802,7 @@ class AlmacenViewModel(
                             .encomiendaSeleccionada
 
                     if (
-                        seleccionada != null &&
+                        _uiState.value.sedeDescargaId == destinoId && seleccionada != null &&
                         seleccionada.id ==
                         encomienda.id &&
                         _uiState.value
@@ -833,7 +835,7 @@ class AlmacenViewModel(
                             .encomiendaSeleccionada
 
                     if (
-                        seleccionada != null &&
+                        _uiState.value.sedeDescargaId == destinoId && seleccionada != null &&
                         seleccionada.id ==
                         encomienda.id
                     ) {
@@ -996,7 +998,8 @@ class AlmacenViewModel(
             almacenUseCase
                 .asignarEncomiendaATraslado(
                     trasladoId = trasladoId,
-                    encomiendaId = encomiendaId
+                    encomiendaId = encomiendaId,
+                    sedeDescargaId = _uiState.value.sedeDescargaId
                 )
                 .onSuccess {
 
