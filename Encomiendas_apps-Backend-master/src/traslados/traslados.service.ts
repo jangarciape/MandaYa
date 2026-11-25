@@ -1532,7 +1532,7 @@ export class TrasladosService {
 
               encomienda
                 .ultima_sede,
-
+              userId,
             ),
 
       ),

@@ -9,6 +9,8 @@ import pe.edu.pe.domain.repository.AlmacenRepository
 class AlmacenUseCase(
     private val repository: AlmacenRepository
 ) {
+    suspend fun confirmarDescarga(trasladoId: Int, sedeId: Int) = repository.confirmarDescarga(trasladoId, sedeId)
+
     suspend fun getEncomiendas(
         destinoId: Int,
         filtro: String

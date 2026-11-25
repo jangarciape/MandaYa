@@ -7,6 +7,8 @@ import pe.edu.pe.domain.model.ListaTrasladosDisponiblesAlmacen
 
 interface AlmacenRepository {
 
+    suspend fun confirmarDescarga(trasladoId: Int, sedeId: Int): Result<Unit>
+
     suspend fun getEncomiendasPorDestino(
         destinoId: Int,
         filtro: String

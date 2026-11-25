@@ -311,6 +311,21 @@ class AlmacenViewModel(
         }
     }
 
+    fun confirmarDescarga(trasladoId: Int) {
+        val state = _uiState.value
+        val sedeId = state.sedeActualId ?: return
+        if (state.isLoading || trasladoId <= 0) return
+        _uiState.update { it.copy(isLoading = true, error = null, mensaje = null) }
+        viewModelScope.launch {
+            almacenUseCase.confirmarDescarga(trasladoId, sedeId)
+                .onSuccess {
+                    _uiState.update { it.copy(isLoading = false, mensaje = "Descarga confirmada para el traslado $trasladoId") }
+                    if (_uiState.value.sedeDestinoSeleccionada != null) cargarEncomiendas(mantenerMensaje = true)
+                }
+                .onFailure { error -> _uiState.update { it.copy(isLoading = false, error = error.message) } }
+        }
+    }
+
     fun cargarEncomiendas(
         mantenerMensaje: Boolean = false
     ) {

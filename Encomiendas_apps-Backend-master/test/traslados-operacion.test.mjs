@@ -31,10 +31,14 @@ test('dos tramos mantienen un solo envío y ambos detalles de traslado', async t
       return detalles.filter(d => !d.descargado_at && d.traslado.id === filtro.traslado.id &&
         (!filtro.sede_descarga_id || d.sede_descarga_id === filtro.sede_descarga_id)); }
   };
-  const servicio = new TrasladoEncomiendaService(detalleRepo,
-    {findOne: async ({where}) => viajes.find(v => v.id === where.id)},
-    {findOne: async () => envio, save: async data => data},
-    {findOneBy: async ({id}) => sedes.find(s => s.id === id)});
+  const viajeRepo = {findOne: async ({where}) => viajes.find(v => v.id === where.id)};
+  const envioRepo = {findOne: async () => envio, save: async data => data};
+  const sedeRepo = {findOneBy: async ({id}) => sedes.find(s => s.id === id)};
+  const eventos = [];
+  const repos = {Traslado: viajeRepo, Sede: sedeRepo, Encomienda: envioRepo,
+    TrasladoEncomienda: detalleRepo, HistorialEncomienda: {save: async rows => eventos.push(...rows)}};
+  detalleRepo.manager = {transaction: fn => fn({getRepository: entity => repos[entity.name]})};
+  const servicio = new TrasladoEncomiendaService(detalleRepo, viajeRepo, envioRepo, sedeRepo);
   const secret = randomBytes(32).toString('hex');
   const jwt = new JwtService({secret});
   const module = await Test.createTestingModule({controllers: [TrasladoEncomiendaController],
@@ -46,7 +50,7 @@ test('dos tramos mantienen un solo envío y ambos detalles de traslado', async t
   async function enviar(viajeId, sedeId, datos) {
     const method = datos ? 'POST' : 'PUT';
     const path = '/traslado-encomienda' + (datos ? '' : '/traslado/' + viajeId + '/sede/' + sedeId + '/descargar');
-    const token = jwt.sign({id: 4, sedeId, role: datos ? JwtRole.ALMACEN : JwtRole.MOVILIDAD});
+    const token = jwt.sign({id: 4, sedeId, role: datos || sedeId === 3 ? JwtRole.ALMACEN : JwtRole.MOVILIDAD});
     const res = await fetch((await app.getUrl()) + path, {method,
       headers: {Authorization: 'Bearer ' + token, 'Content-Type': 'application/json'}, body: datos && JSON.stringify(datos)});
     assert.equal(res.status, datos ? 201 : 200);
@@ -62,8 +66,15 @@ test('dos tramos mantienen un solo envío y ambos detalles de traslado', async t
   assert.equal(envio.ultima_sede.id, 2);
   await enviar(2, 2, {encomiendaId: 9, trasladoId: 2});
   viajes[1].estado = 'EN_CURSO';
+  const otraSede = jwt.sign({id: 8, sedeId: 2, role: JwtRole.ALMACEN});
+  const fueraDeSede = await fetch((await app.getUrl()) + '/traslado-encomienda/traslado/2/sede/3/descargar', {
+    method: 'PUT', headers: {Authorization: 'Bearer ' + otraSede},
+  });
+  assert.equal(fueraDeSede.status, 403);
+  assert.equal(eventos.length, 1);
   await enviar(2, 3);
   assert.equal(envio.estado, 'EN_SEDE_DESTINO');
+  assert.deepEqual(eventos.map(e => [e.estado, e.sede.id, e.usuario_id]), [['EN_ALMACEN', 2, 4], ['EN_SEDE_DESTINO', 3, 4]]);
   assert.deepEqual(detalles.map(d => d.sede_descarga_id), [2, 3]);
   assert.ok(detalles.every(d => d.descargado_at instanceof Date));
 });

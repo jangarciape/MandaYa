@@ -174,6 +174,28 @@ fun WarehouseScreen(
                 )
         )
 
+        if (uiState.sedeActualId != null) {
+            var mostrarDescarga by rememberSaveable { mutableStateOf(false) }
+            var traslado by rememberSaveable { mutableStateOf("") }
+            TextButton(onClick = { mostrarDescarga = true }, enabled = !uiState.isLoading) {
+                Text("Confirmar descarga en esta sede")
+            }
+            if (mostrarDescarga) {
+                AlertDialog(
+                    onDismissRequest = { mostrarDescarga = false },
+                    title = { Text("Descargar en " + uiState.sedeActualNombre) },
+                    text = { OutlinedTextField(value = traslado, onValueChange = { traslado = it },
+                        label = { Text("Número de traslado") }, singleLine = true) },
+                    confirmButton = { TextButton(enabled = (traslado.toIntOrNull() ?: 0) > 0, onClick = {
+                        traslado.toIntOrNull()?.let(viewModel::confirmarDescarga)
+                        mostrarDescarga = false
+                        traslado = ""
+                    }) { Text("Confirmar descarga") } },
+                    dismissButton = { TextButton(onClick = { mostrarDescarga = false }) { Text("Cancelar") } }
+                )
+            }
+        }
+
         if (
             uiState.sedeActualNombre
                 .isNotBlank()
