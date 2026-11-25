@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -8,6 +9,7 @@ import {
   ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -40,6 +42,16 @@ export class ReportesController {
     private readonly reportesService:
       ReportesService,
   ) {}
+
+  @Get('operativos')
+  @HasRoles(JwtRole.ADMINISTRADOR)
+  @UseGuards(JwtAuthGuard, JwtRolesGuard)
+  @ApiOperation({ summary: 'Consultar encomiendas por fecha de registro y sede de origen' })
+  @ApiQuery({ name: 'fecha', example: '2026-11-24', required: true })
+  @ApiQuery({ name: 'sedeId', type: Number, required: false })
+  obtenerReporteOperativo(@Query('fecha') fecha: string, @Query('sedeId') sedeId?: string) {
+    return this.reportesService.obtenerReporteOperativo(fecha, sedeId);
+  }
 
   @ApiOperation({
     summary:

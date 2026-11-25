@@ -32,9 +32,10 @@ test('HTTP del panel, mapa y ubicación durante el traslado', async () => {
   const sede = {id: 1, name: 'Origen'};
   const envio = {id: 1, codigo_rastreo: 'MY-ABCDEF12', clave_rastreo_hash: await hash('1234',4),
     estado: 'EN_TRANSITO', sede_origen: sede, sede_destino: {id: 2, name: 'Destino'}, ultima_sede: sede};
+  let asignado = false;
   const encomiendas = new EncomiendaService({findOne: async ({where}) => where.codigo_rastreo === envio.codigo_rastreo ? envio : null},
     null, null, null, null, {findByEncomienda: async () => ({historial: []})}, null,
-    {find: async () => [{traslado: {...traslado, ubicacion: posicion}}]});
+    {find: async () => asignado ? [{traslado: {...traslado, ubicacion: posicion}}] : []});
   const module = await Test.createTestingModule({
     controllers: [EncomiendaController, ReportesController, UbicacionTrasladoController],
     providers: [{provide: EncomiendaService, useValue: encomiendas}, JwtStrategy, {provide: ConfigService, useValue: new ConfigService({JWT_SECRET: secret})},
@@ -64,6 +65,10 @@ test('HTTP del panel, mapa y ubicación durante el traslado', async () => {
     await request(gps, chofer, 404);
     const coordenadas = {latitud: -12.05, longitud: -77.04};
     const rastrear = '/encomienda/rastrear', consulta = {codigoRastreo: envio.codigo_rastreo, clave: '1234'};
+    await request(rastrear, cliente, 404, {...consulta, codigoRastreo: 'MY-FFFFFFFF'}, 'POST');
+    const sinTraslado = await request(rastrear, cliente, 201, consulta, 'POST');
+    assert.equal(sinTraslado.movilidad.tiene_ubicacion, false);
+    asignado = true;
     const sinGps = await request(rastrear, cliente, 201, consulta, 'POST');
     assert.equal(sinGps.movilidad.tiene_ubicacion, false);
     const actualizado = await request(gps, chofer, 200, coordenadas);

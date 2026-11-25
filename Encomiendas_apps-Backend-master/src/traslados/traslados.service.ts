@@ -1719,28 +1719,10 @@ export class TrasladosService {
         .trasladoRepository
         .findOne({
 
-          where: {
-
-            vehiculo: {
-
-              id:
-                vehiculoId,
-
-            },
-
-            estado:
-              In([
-
-                TrasladoEstado
-                  .PROGRAMADO,
-
-                TrasladoEstado
-                  .EN_CURSO,
-
-              ]),
-
-          },
-
+          where: [
+            { vehiculo: { id: vehiculoId }, estado: In([TrasladoEstado.PROGRAMADO, TrasladoEstado.EN_CURSO]) },
+            { vehiculo: { id: vehiculoId }, estado: TrasladoEstado.FINALIZADO, retorno_confirmado_at: IsNull() },
+          ],
         });
 
 
@@ -1777,28 +1759,10 @@ export class TrasladosService {
         .trasladoRepository
         .findOne({
 
-          where: {
-
-            conductor: {
-
-              id:
-                conductorId,
-
-            },
-
-            estado:
-              In([
-
-                TrasladoEstado
-                  .PROGRAMADO,
-
-                TrasladoEstado
-                  .EN_CURSO,
-
-              ]),
-
-          },
-
+          where: [
+            { conductor: { id: conductorId }, estado: In([TrasladoEstado.PROGRAMADO, TrasladoEstado.EN_CURSO]) },
+            { conductor: { id: conductorId }, estado: TrasladoEstado.FINALIZADO, retorno_confirmado_at: IsNull() },
+          ],
         });
 
 
