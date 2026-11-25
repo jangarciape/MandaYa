@@ -49,6 +49,7 @@ export class HistorialEncomiendaService {
     encomienda: Encomienda,
     estado: EncomiendaEstado,
     sede: Sede | null,
+    usuarioId?: number,
   ) {
 
     const historial =
@@ -56,6 +57,7 @@ export class HistorialEncomiendaService {
         encomienda:
           encomienda,
 
+        usuario_id: usuarioId ?? null,
         estado:
           estado,
 
@@ -134,6 +136,7 @@ export class HistorialEncomiendaService {
             id:
               item.id,
 
+            usuario_id: item.usuario_id ?? null,
             estado:
               item.estado,
 

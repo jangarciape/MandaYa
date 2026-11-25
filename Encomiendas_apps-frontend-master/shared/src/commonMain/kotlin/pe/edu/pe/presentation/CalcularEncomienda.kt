@@ -27,6 +27,7 @@ import org.koin.compose.koinInject
 import pe.edu.pe.domain.model.Sede
 import pe.edu.pe.domain.repository.SedeRepository
 import pe.edu.pe.domain.repository.TarifaRepository
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import pe.edu.pe.presentation.theme.*
 import androidx.compose.ui.tooling.preview.Preview
@@ -64,6 +65,7 @@ fun CalculadoraCostoScreen(
     var destinoId by remember { mutableStateOf<Int?>(null) }
     var sedesDisponibles by remember { mutableStateOf<List<Sede>>(emptyList()) }
 
+    val scope = rememberCoroutineScope()
     val isPreview = LocalInspectionMode.current
     val sedeRepository: SedeRepository? = if (isPreview) null else koinInject()
     val tarifaRepository: TarifaRepository? = if (isPreview) null else koinInject()
@@ -391,19 +393,21 @@ fun CalculadoraCostoScreen(
                         mensajeError = "Selecciona sedes válidas"
                     } else {
                         mensajeError = ""
-                        val resultado = tarifaRepository?.cotizar(
-                            selectedOrigenId,
-                            selectedDestinoId,
-                            pesoNum
-                        ) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
-                        resultado
-                            .onSuccess {
-                                costoCalculado = it
-                                mostrarResultado = true
-                            }
-                            .onFailure {
-                                mensajeError = it.message ?: "No se pudo calcular la cotización"
-                            }
+                        scope.launch {
+                            val resultado = tarifaRepository?.cotizar(
+                                selectedOrigenId,
+                                selectedDestinoId,
+                                pesoNum
+                            ) ?: Result.failure(Exception("La cotización no está disponible en la vista previa"))
+                            resultado
+                                .onSuccess {
+                                    costoCalculado = it
+                                    mostrarResultado = true
+                                }
+                                .onFailure {
+                                    mensajeError = it.message ?: "No se pudo calcular la cotización"
+                                }
+                        }
                     }
                 }
             },

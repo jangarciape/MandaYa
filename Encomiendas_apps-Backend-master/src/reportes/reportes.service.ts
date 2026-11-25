@@ -1,5 +1,6 @@
 import {
   Injectable,
+  BadRequestException,
 } from '@nestjs/common';
 
 import {
@@ -54,6 +55,32 @@ export class ReportesService {
       Repository<User>,
 
   ) {}
+
+  async obtenerReporteOperativo(fecha: string, sedeId?: string) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      throw new BadRequestException('La fecha debe tener formato AAAA-MM-DD');
+    }
+    const inicio = new Date(fecha + 'T00:00:00Z');
+    if (!Number.isFinite(inicio.getTime()) || inicio.toISOString().slice(0, 10) !== fecha) {
+      throw new BadRequestException('Fecha de calendario inválida');
+    }
+    if (sedeId !== undefined && (!/^[1-9]\d*$/.test(sedeId) || !Number.isSafeInteger(Number(sedeId)))) {
+      throw new BadRequestException('La sede debe ser un entero positivo');
+    }
+    const siguienteFecha = new Date(inicio.getTime() + 86400000).toISOString().slice(0, 10);
+    const consulta = this.encomiendaRepository.createQueryBuilder('envio')
+      .select('envio.id', 'id')
+      .addSelect('envio.codigo_rastreo', 'codigo_rastreo')
+      .addSelect('envio.estado', 'estado')
+      .where('envio.created_at >= :fecha AND envio.created_at < :siguienteFecha', { fecha, siguienteFecha })
+      .orderBy('envio.created_at', 'ASC')
+      .addOrderBy('envio.id', 'ASC');
+    if (sedeId !== undefined) {
+      consulta.innerJoin('envio.sede_origen', 'origen').andWhere('origen.id = :sedeId', { sedeId: Number(sedeId) });
+    }
+    const encomiendas = await consulta.getRawMany();
+    return { fecha, sedeId: sedeId === undefined ? null : Number(sedeId), total: encomiendas.length, encomiendas };
+  }
 
   async obtenerEstadisticas() {
 

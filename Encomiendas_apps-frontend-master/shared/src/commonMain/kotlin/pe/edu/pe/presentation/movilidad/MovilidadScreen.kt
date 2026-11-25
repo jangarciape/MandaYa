@@ -90,6 +90,12 @@ fun MovilidadScreen(
     val uiState by
     viewModel.uiState.collectAsState()
 
+    val trasladoActivo = uiState.traslados.firstOrNull {
+        it.id == uiState.trasladoSeleccionadoId && it.estado.equals("EN_CURSO", ignoreCase = true)
+    }
+    if (trasladoActivo != null) {
+        CapturaUbicacion(trasladoActivo.id, viewModel::actualizarUbicacion)
+    }
     Scaffold(
         containerColor =
             LightBackground,
@@ -1388,9 +1394,7 @@ fun BajarScreenContent(
 
                         it.descargadoAt
                             .isBlank() &&
-                                it.encomienda
-                                    .sedeDestino
-                                    .id ==
+                                (it.sedeDescargaId ?: it.encomienda.sedeDestino.id) ==
                                 uiState
                                     .sedeSeleccionadaId
                     }
@@ -1439,6 +1443,13 @@ fun BajarScreenContent(
                         detalle =
                             detalle
                     )
+                }
+            }
+
+            item {
+                Button(onClick = viewModel::confirmarParada,
+                    enabled = traslado.estado == "EN_CURSO" && uiState.sedeSeleccionadaId > 0 && !uiState.procesando) {
+                    Text("Confirmar llegada a la sede seleccionada")
                 }
             }
 

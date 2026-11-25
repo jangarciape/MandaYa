@@ -127,6 +127,8 @@ class MovilidadUseCase(
     }
 
 
+    suspend fun confirmarParada(trasladoId: Int, sedeId: Int) = repository.confirmarParada(trasladoId, sedeId)
+
     suspend fun actualizarUbicacion(
         trasladoId: Int,
         latitud: Double,

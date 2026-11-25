@@ -3,6 +3,7 @@ import {
   Entity,
   JoinColumn,
   OneToOne,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -13,6 +14,8 @@ import type {
 import {
   Encomienda,
 } from '../encomienda/encomienda.entity.js';
+
+import { Persona } from '../personas/persona.entity.js';
 
 export enum PagoModalidad {
   ORIGEN = 'ORIGEN',
@@ -47,6 +50,9 @@ export class Pago {
   encomienda:
     Relation<Encomienda>;
 
+  @ManyToOne(() => Persona, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'pagador_id' })
+  pagador: Relation<Persona> | null;
   @Column({
     type: 'enum',
     enum: PagoModalidad,

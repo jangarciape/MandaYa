@@ -406,6 +406,8 @@ fun AdminDashboardContent(
                 )
 
 
+                MetricasAdministrativas()
+
                 // Fila 1
                 Row(
                     modifier =

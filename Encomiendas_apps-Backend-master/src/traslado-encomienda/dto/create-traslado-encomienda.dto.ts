@@ -1,6 +1,7 @@
 import {
   IsInt,
   IsNotEmpty,
+  IsOptional,
   Min,
 } from 'class-validator';
 
@@ -15,5 +16,10 @@ export class CreateTrasladoEncomiendaDto {
   @IsInt()
   @Min(1)
   encomiendaId: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  sedeDescargaId?: number;
 
 }

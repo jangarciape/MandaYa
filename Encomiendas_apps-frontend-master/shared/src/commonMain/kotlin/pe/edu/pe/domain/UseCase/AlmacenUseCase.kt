@@ -9,6 +9,8 @@ import pe.edu.pe.domain.repository.AlmacenRepository
 class AlmacenUseCase(
     private val repository: AlmacenRepository
 ) {
+    suspend fun confirmarDescarga(trasladoId: Int, sedeId: Int) = repository.confirmarDescarga(trasladoId, sedeId)
+
     suspend fun getEncomiendas(
         destinoId: Int,
         filtro: String
@@ -39,12 +41,14 @@ class AlmacenUseCase(
     }
     suspend fun asignarEncomiendaATraslado(
         trasladoId: Int,
-        encomiendaId: Int
+        encomiendaId: Int,
+        sedeDescargaId: Int?
     ): Result<Unit> {
 
         return repository.asignarEncomiendaATraslado(
             trasladoId = trasladoId,
-            encomiendaId = encomiendaId
+            encomiendaId = encomiendaId,
+            sedeDescargaId = sedeDescargaId
         )
     }
 }

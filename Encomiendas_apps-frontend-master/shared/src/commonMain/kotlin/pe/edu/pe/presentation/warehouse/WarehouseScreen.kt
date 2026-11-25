@@ -33,6 +33,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface as MaterialSurface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +71,9 @@ fun WarehouseScreen(
     ) {
 
         SelectorMovilidadDialog(
+            sedes = uiState.sedesDestino,
+            sedeDescargaId = uiState.sedeDescargaId,
+            onSede = { sede -> uiState.encomiendaSeleccionada?.let { viewModel.abrirSelectorMovilidad(it, sede) } },
             encomienda =
                 uiState.encomiendaSeleccionada,
             traslados =
@@ -166,6 +173,28 @@ fun WarehouseScreen(
                     28.dp
                 )
         )
+
+        if (uiState.sedeActualId != null) {
+            var mostrarDescarga by rememberSaveable { mutableStateOf(false) }
+            var traslado by rememberSaveable { mutableStateOf("") }
+            TextButton(onClick = { mostrarDescarga = true }, enabled = !uiState.isLoading) {
+                Text("Confirmar descarga en esta sede")
+            }
+            if (mostrarDescarga) {
+                AlertDialog(
+                    onDismissRequest = { mostrarDescarga = false },
+                    title = { Text("Descargar en " + uiState.sedeActualNombre) },
+                    text = { OutlinedTextField(value = traslado, onValueChange = { traslado = it },
+                        label = { Text("Número de traslado") }, singleLine = true) },
+                    confirmButton = { TextButton(enabled = (traslado.toIntOrNull() ?: 0) > 0, onClick = {
+                        traslado.toIntOrNull()?.let(viewModel::confirmarDescarga)
+                        mostrarDescarga = false
+                        traslado = ""
+                    }) { Text("Confirmar descarga") } },
+                    dismissButton = { TextButton(onClick = { mostrarDescarga = false }) { Text("Cancelar") } }
+                )
+            }
+        }
 
         if (
             uiState.sedeActualNombre
@@ -627,13 +656,37 @@ fun WarehouseScreen(
 
         } else {
 
+            var codigo by rememberSaveable(destino.id, uiState.filtro) { mutableStateOf("") }
+            var estado by rememberSaveable(destino.id, uiState.filtro) { mutableStateOf("") }
+            val resultados = uiState.encomiendas.filter { envio ->
+                envio.codigoRastreo.contains(codigo.trim(), ignoreCase = true) &&
+                    (estado.isEmpty() || envio.estado == estado)
+            }
+            OutlinedTextField(
+                value = codigo,
+                onValueChange = { codigo = it },
+                label = { Text("Buscar por código de rastreo") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            LazyRow {
+                items(listOf("") + uiState.encomiendas.map { it.estado }.distinct().sorted()) { opcion ->
+                    FiltroItem(
+                        texto = opcion.ifEmpty { "Todos los estados" }.replace('_', ' '),
+                        seleccionado = estado == opcion,
+                        modifier = Modifier.padding(end = 4.dp),
+                        onClick = { estado = opcion }
+                    )
+                }
+            }
+
             Text(
                 text =
                     obtenerTituloLista(
                         filtro =
                             uiState.filtro,
                         total =
-                            uiState.total
+                            resultados.size
                     ),
                 fontSize =
                     15.sp,
@@ -651,11 +704,12 @@ fun WarehouseScreen(
             )
 
             if (
-                uiState.encomiendas
-                    .isEmpty()
+                resultados.isEmpty()
             ) {
 
-                if (
+                if (codigo.isNotBlank() || estado.isNotEmpty()) {
+                    EstadoVacio(mensaje = "No hay coincidencias.")
+                } else if (
                     uiState.filtro ==
                     "pendientes"
                 ) {
@@ -702,7 +756,7 @@ fun WarehouseScreen(
 
                     items(
                         items =
-                            uiState.encomiendas,
+                            resultados,
                         key = { encomienda ->
                             encomienda.id
                         }
@@ -1944,6 +1998,7 @@ private fun BotonAccion(
 
 @Composable
 private fun SelectorMovilidadDialog(
+    sedes: List<Sede>, sedeDescargaId: Int?, onSede: (Int) -> Unit,
     encomienda: EncomiendaAlmacen?,
     traslados: List<TrasladoDisponibleAlmacen>,
     cargando: Boolean,
@@ -1975,10 +2030,14 @@ private fun SelectorMovilidadDialog(
                         Ink
                 )
 
-                if (
-                    encomienda != null
-                ) {
-
+                Text("Sede de descarga del tramo")
+                LazyRow {
+                    items(sedes, key = { it.id }) { sede ->
+                        TextButton(enabled = asignandoTrasladoId == null && sede.id != sedeDescargaId,
+                            onClick = { onSede(sede.id) }) { Text(sede.name) }
+                    }
+                }
+                if (encomienda != null) {
                     Text(
                         text =
                             encomienda.codigoRastreo,

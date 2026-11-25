@@ -44,6 +44,21 @@ class AlmacenRepositoryImpl(
             isLenient = true
         }
 
+    override suspend fun confirmarDescarga(trasladoId: Int, sedeId: Int): Result<Unit> {
+        val token = sessionManager.getToken() ?: return Result.failure(Exception("Sesión requerida"))
+        return try {
+            val response = client.put("$baseUrl/traslado-encomienda/traslado/$trasladoId/sede/$sedeId/descargar") {
+                bearerAuth(token.removePrefix("Bearer ").trim())
+            }
+            if (response.status.isSuccess()) Result.success(Unit)
+            else Result.failure(Exception(obtenerMensajeError(response.bodyAsText())))
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getEncomiendasPorDestino(
         destinoId: Int,
         filtro: String
@@ -375,7 +390,8 @@ class AlmacenRepositoryImpl(
 
     override suspend fun asignarEncomiendaATraslado(
         trasladoId: Int,
-        encomiendaId: Int
+        encomiendaId: Int,
+        sedeDescargaId: Int?
     ): Result<Unit> {
 
         return try {
@@ -426,8 +442,8 @@ class AlmacenRepositoryImpl(
                     trasladoId =
                         trasladoId,
 
-                    encomiendaId =
-                        encomiendaId
+                    encomiendaId = encomiendaId,
+                    sedeDescargaId = sedeDescargaId
                 )
 
 
@@ -542,7 +558,8 @@ private data class AsignarEncomiendaTrasladoRequestDto(
 
     val trasladoId: Int,
 
-    val encomiendaId: Int
+    val encomiendaId: Int,
+    val sedeDescargaId: Int?
 )
 
 

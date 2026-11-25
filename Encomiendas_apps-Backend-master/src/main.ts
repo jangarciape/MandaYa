@@ -14,6 +14,7 @@ import {
 import {
   AppModule,
 } from './app.module.js';
+import { ApiErrorFilter } from './api-error.filter.js';
 
 async function bootstrap() {
 
@@ -22,6 +23,7 @@ async function bootstrap() {
       AppModule,
     );
 
+  app.useGlobalFilters(new ApiErrorFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

@@ -29,6 +29,7 @@ data class AlmacenUiState(
     val encomiendaSeleccionada: EncomiendaAlmacen? = null,
     val trasladosDisponibles: List<TrasladoDisponibleAlmacen> = emptyList(),
     val mostrarSelectorMovilidad: Boolean = false,
+    val sedeDescargaId: Int? = null,
     val cargandoMovilidades: Boolean = false,
     val asignandoTrasladoId: Int? = null
 )
@@ -307,6 +308,21 @@ class AlmacenViewModel(
         ) {
 
             cargarEncomiendas()
+        }
+    }
+
+    fun confirmarDescarga(trasladoId: Int) {
+        val state = _uiState.value
+        val sedeId = state.sedeActualId ?: return
+        if (state.isLoading || trasladoId <= 0) return
+        _uiState.update { it.copy(isLoading = true, error = null, mensaje = null) }
+        viewModelScope.launch {
+            almacenUseCase.confirmarDescarga(trasladoId, sedeId)
+                .onSuccess {
+                    _uiState.update { it.copy(isLoading = false, mensaje = "Descarga confirmada para el traslado $trasladoId") }
+                    if (_uiState.value.sedeDestinoSeleccionada != null) cargarEncomiendas(mantenerMensaje = true)
+                }
+                .onFailure { error -> _uiState.update { it.copy(isLoading = false, error = error.message) } }
         }
     }
 
@@ -678,7 +694,8 @@ class AlmacenViewModel(
     }
 
     fun abrirSelectorMovilidad(
-        encomienda: EncomiendaAlmacen
+        encomienda: EncomiendaAlmacen,
+        descarga: Int = encomienda.sedeDestinoId
     ) {
 
         if (
@@ -772,11 +789,11 @@ class AlmacenViewModel(
             return
         }
 
-        val destinoId =
-            destino.id
+        val destinoId = descarga
 
         _uiState.update {
             it.copy(
+                sedeDescargaId = descarga,
                 encomiendaSeleccionada = encomienda,
                 mostrarSelectorMovilidad = true,
                 trasladosDisponibles = emptyList(),
@@ -800,7 +817,7 @@ class AlmacenViewModel(
                             .encomiendaSeleccionada
 
                     if (
-                        seleccionada != null &&
+                        _uiState.value.sedeDescargaId == destinoId && seleccionada != null &&
                         seleccionada.id ==
                         encomienda.id &&
                         _uiState.value
@@ -833,7 +850,7 @@ class AlmacenViewModel(
                             .encomiendaSeleccionada
 
                     if (
-                        seleccionada != null &&
+                        _uiState.value.sedeDescargaId == destinoId && seleccionada != null &&
                         seleccionada.id ==
                         encomienda.id
                     ) {
@@ -996,7 +1013,8 @@ class AlmacenViewModel(
             almacenUseCase
                 .asignarEncomiendaATraslado(
                     trasladoId = trasladoId,
-                    encomiendaId = encomiendaId
+                    encomiendaId = encomiendaId,
+                    sedeDescargaId = _uiState.value.sedeDescargaId
                 )
                 .onSuccess {
 

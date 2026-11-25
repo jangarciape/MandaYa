@@ -171,7 +171,7 @@ export class TrasladoEncomiendaController {
   }
 
   @HasRoles(
-    JwtRole.MOVILIDAD,
+    JwtRole.MOVILIDAD, JwtRole.ALMACEN,
   )
   @UseGuards(
     JwtAuthGuard,
@@ -204,6 +204,7 @@ export class TrasladoEncomiendaController {
         trasladoId,
         sedeId,
         request.user.userId,
+        request.user.role === JwtRole.ALMACEN ? { sedeId: request.user.sedeId } : undefined,
       );
   }
 

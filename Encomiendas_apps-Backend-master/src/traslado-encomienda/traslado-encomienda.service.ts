@@ -1,3 +1,5 @@
+import { EntityManager } from 'typeorm';
+import { HistorialEncomienda } from '../historial-encomienda/historial-encomienda.entity.js';
 import {
   BadRequestException,
   ConflictException,
@@ -236,7 +238,7 @@ export class TrasladoEncomiendaService {
       traslado.ruta.sedes.find(
         (item) =>
           item.sede.id ===
-          encomienda.sede_destino.id,
+          (detalle.sedeDescargaId ?? encomienda.sede_destino.id),
       );
 
 
@@ -423,6 +425,7 @@ export class TrasladoEncomiendaService {
 
     const newDetalle =
       this.detalleRepository.create({
+        sede_descarga_id: destinoEnRuta.sede.id,
 
         traslado:
           traslado,
@@ -717,24 +720,11 @@ export class TrasladoEncomiendaService {
     const encomiendas =
       await this.detalleRepository.find({
 
-        where: {
-
-          traslado: {
-            id: trasladoId,
-          },
-
-          encomienda: {
-
-            sede_destino: {
-              id: sedeId,
-            },
-
-          },
-
-          descargado_at:
-            IsNull(),
-
-        },
+        where: [
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: sedeId },
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: IsNull(),
+            encomienda: { sede_destino: { id: sedeId } } },
+        ],
 
         relations: {
 
@@ -838,11 +828,26 @@ export class TrasladoEncomiendaService {
   async descargarPorSede(
     trasladoId: number,
     sedeId: number,
-    conductorId: number,
+    usuarioId: number,
+    almacen?: { sedeId: number | null },
   ) {
 
+    if (almacen && almacen.sedeId !== sedeId) {
+      throw new ForbiddenException('Solo puede descargar en su sede asignada');
+    }
+    return this.detalleRepository.manager.transaction(async manager => {
+      await manager.getRepository(Traslado).findOne({
+        where: { id: trasladoId }, lock: { mode: 'pessimistic_write' },
+      });
+      return this.descargarEnTransaccion(manager, trasladoId, sedeId, usuarioId, Boolean(almacen));
+    });
+  }
+
+  private async descargarEnTransaccion(
+    manager: EntityManager, trasladoId: number, sedeId: number, usuarioId: number, esAlmacen: boolean,
+  ) {
     const traslado =
-      await this.trasladoRepository.findOne({
+      await manager.getRepository(Traslado).findOne({
 
         where: {
           id: trasladoId,
@@ -876,8 +881,7 @@ export class TrasladoEncomiendaService {
 
 
     if (
-      traslado.conductor.id !==
-      conductorId
+      !esAlmacen && traslado.conductor.id !== usuarioId
     ) {
 
       throw new ForbiddenException(
@@ -900,7 +904,7 @@ export class TrasladoEncomiendaService {
 
 
     const sede =
-      await this.sedeRepository.findOneBy({
+      await manager.getRepository(Sede).findOneBy({
 
         id:
           sedeId,
@@ -938,26 +942,13 @@ export class TrasladoEncomiendaService {
 
 
     const detalles =
-      await this.detalleRepository.find({
+      await manager.getRepository(TrasladoEncomienda).find({
 
-        where: {
-
-          traslado: {
-            id: trasladoId,
-          },
-
-          encomienda: {
-
-            sede_destino: {
-              id: sedeId,
-            },
-
-          },
-
-          descargado_at:
-            IsNull(),
-
-        },
+        where: [
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: sedeId },
+          { traslado: { id: trasladoId }, descargado_at: IsNull(), sede_descarga_id: IsNull(),
+            encomienda: { sede_destino: { id: sedeId } } },
+        ],
 
         relations: {
 
@@ -1002,15 +993,14 @@ export class TrasladoEncomiendaService {
         .ultima_sede =
         sede;
 
-      detalle.encomienda
-        .estado =
-        EncomiendaEstado
-          .EN_SEDE_DESTINO;
+      detalle.encomienda.estado = detalle.encomienda.sede_destino.id === sede.id
+        ? EncomiendaEstado.EN_SEDE_DESTINO
+        : EncomiendaEstado.EN_ALMACEN;
 
     }
 
 
-    await this.encomiendaRepository.save(
+    await manager.getRepository(Encomienda).save(
       detalles.map(
         (detalle) =>
           detalle.encomienda,
@@ -1018,7 +1008,10 @@ export class TrasladoEncomiendaService {
     );
 
 
-    await this.detalleRepository.save(
+    await manager.getRepository(HistorialEncomienda).save(detalles.map(({ encomienda }) => ({
+      encomienda, estado: encomienda.estado, sede, usuario_id: usuarioId, created_at: fecha,
+    })));
+    await manager.getRepository(TrasladoEncomienda).save(
       detalles,
     );
 

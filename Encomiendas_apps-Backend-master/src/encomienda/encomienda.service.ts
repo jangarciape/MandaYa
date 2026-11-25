@@ -588,7 +588,7 @@ export class EncomiendaService {
       )
 
       .where(
-        'sede_origen.id = :sedeOrigenId',
+        'COALESCE(ultima_sede.id, sede_origen.id) = :sedeOrigenId',
         {
           sedeOrigenId:
             sedeOrigen.id,

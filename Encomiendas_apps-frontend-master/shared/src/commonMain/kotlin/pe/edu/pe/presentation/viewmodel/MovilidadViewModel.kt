@@ -459,6 +459,18 @@ class MovilidadViewModel(
     }
 
 
+    fun confirmarParada() {
+        val estado = _uiState.value
+        if (estado.procesando || estado.sedeSeleccionadaId <= 0) return
+        _uiState.update { it.copy(procesando = true, error = "", mensaje = "") }
+        viewModelScope.launch {
+            val resultado = movilidadUseCase.confirmarParada(estado.trasladoSeleccionadoId, estado.sedeSeleccionadaId)
+            _uiState.update { it.copy(procesando = false,
+                mensaje = if (resultado.isSuccess) "Parada confirmada" else "",
+                error = resultado.exceptionOrNull()?.message.orEmpty()) }
+        }
+    }
+
     fun descargarEnSede() {
 
         val trasladoId =
@@ -1050,57 +1062,10 @@ class MovilidadViewModel(
         }
 
 
-        var trasladoEnCurso =
-            false
-
-
-        for (
-        traslado in
-        _uiState.value.traslados
-        ) {
-
-            if (
-                traslado.id ==
-                trasladoId
-            ) {
-
-                if (
-                    traslado.estado
-                        .trim()
-                        .uppercase() ==
-                    "EN_CURSO"
-                ) {
-
-                    trasladoEnCurso =
-                        true
-                }
-
-                break
-            }
-        }
-
-
-        if (
-            !trasladoEnCurso
-        ) {
-
-            return
-        }
-
-
         viewModelScope.launch {
-
-            movilidadUseCase
-                .actualizarUbicacion(
-                    trasladoId =
-                        trasladoId,
-
-                    latitud =
-                        latitud,
-
-                    longitud =
-                        longitud
-                )
+            val actual = _uiState.value
+            val estado = actual.traslados.firstOrNull { it.id == trasladoId }?.estado
+            enviarGpsSiActivo(estado, trasladoId, latitud, longitud, movilidadUseCase::actualizarUbicacion)
                 .onFailure {
                         exception ->
 
@@ -1412,4 +1377,11 @@ class MovilidadViewModel(
 
         return defecto
     }
+}
+internal suspend fun enviarGpsSiActivo(
+    estado: String?, trasladoId: Int, latitud: Double, longitud: Double,
+    enviar: suspend (Int, Double, Double) -> Result<Unit>
+): Result<Unit> {
+    if (!estado.equals("EN_CURSO", ignoreCase = true)) return Result.success(Unit)
+    return enviar(trasladoId, latitud, longitud)
 }

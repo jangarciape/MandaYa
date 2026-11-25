@@ -27,6 +27,9 @@ import {
 })
 export class HistorialEncomienda {
 
+  @Column({ type: 'int', nullable: true })
+  usuario_id: number | null;
+
   @PrimaryGeneratedColumn()
   id: number;
 
